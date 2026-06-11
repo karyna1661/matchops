@@ -69,7 +69,7 @@ test("MONITOR payload includes title, description, labels, priority, confidence,
 	const payload = plans[0].payload as any;
 	assert.equal(typeof payload.title, "string");
 	assert.equal(typeof payload.description, "string");
-	assert.deepEqual(payload.labels, ["low", "monitoring"]);
+	assert.deepEqual(payload.labels, ["low", "monitoring", "nominal"]);
 	assert.equal(payload.priority, "low");
 	assert.equal(payload.confidence, 0.7);
 	assert.equal(payload.reason, "Traffic normal");
@@ -80,7 +80,12 @@ test("CREATE_INCIDENT payload includes title, description, labels, priority, con
 	const payload = plans[0].payload;
 	assert.equal(typeof payload.title, "string");
 	assert.equal(typeof payload.description, "string");
-	assert.deepEqual(payload.labels, ["medium", "incident"]);
+	assert.deepEqual(payload.labels, [
+		"medium",
+		"incident",
+		"warning",
+		"drift-detected",
+	]);
 	assert.equal(payload.priority, "medium");
 	assert.equal(payload.confidence, 0.65);
 	assert.equal(payload.reason, "Transport delay detected");
@@ -132,6 +137,7 @@ test("stablePayloadString recursively sorts object keys", () => {
 		"labels",
 		"priority",
 		"reason",
+		"severity",
 		"title",
 	]);
 });
@@ -141,7 +147,12 @@ test("stablePayloadString preserves array order", () => {
 	const key = plans[0].idempotencyKey;
 	const payloadPart = key.split(":").slice(4).join(":");
 	const parsed = JSON.parse(payloadPart);
-	assert.deepEqual(parsed.labels, ["medium", "incident"]);
+	assert.deepEqual(parsed.labels, [
+		"medium",
+		"incident",
+		"warning",
+		"drift-detected",
+	]);
 });
 
 test("input actions are not mutated", () => {
@@ -202,6 +213,7 @@ test("stableStringify sorts keys sharing first character lexicographically", () 
 		"labels",
 		"priority",
 		"reason",
+		"severity",
 		"title",
 	]);
 });

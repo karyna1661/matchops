@@ -15,4 +15,5 @@ export type GitLabResult = {
 	error?: string;
 	dryRun: boolean;
 	fallback?: boolean;
+	severity?: string;
 };

@@ -61,6 +61,7 @@ export const executeGitLabPlan = async (
 						title: payload.title,
 						description: payload.description,
 						labels: payload.labels ? payload.labels.join(",") : "",
+						severity: payload.severity || "unknown",
 					}),
 				},
 			);
@@ -135,7 +136,8 @@ export const executeGitLabPlan = async (
 							body: JSON.stringify({
 								title: `[ESCALATE] ${payload.variables?.reason ?? "Operational escalation"}`,
 								description: desc,
-								labels: `escalation,${payload.variables?.priority ?? "high"}`,
+								labels: `escalation,critical,drift-detected,${payload.variables?.priority ?? "high"}`,
+								severity: "critical",
 							}),
 						},
 					);

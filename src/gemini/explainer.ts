@@ -116,11 +116,11 @@ const buildSyntheticIssueContent = (
 ): GeminiIssueContent => {
 	const labels: string[] = [action.priority];
 	if (action.type === "MONITOR") {
-		labels.push("monitoring");
+		labels.push("monitoring", "nominal");
 	} else if (action.type === "CREATE_INCIDENT") {
-		labels.push("incident");
+		labels.push("incident", "warning", "drift-detected");
 	} else {
-		labels.push("escalation");
+		labels.push("escalation", "critical", "drift-detected");
 	}
 	return {
 		title:
@@ -171,9 +171,9 @@ For EACH action, produce a JSON object with:
 
 Respond ONLY with a valid JSON object mapping action types to their content:
 {
-  "MONITOR": { "title": "...", "description": "...", "labels": ["low", "monitoring"] },
-  "CREATE_INCIDENT": { "title": "...", "description": "...", "labels": ["medium", "incident"] },
-  "ESCALATE": { "title": "...", "description": "...", "labels": ["high", "escalation"] }
+  "MONITOR": { "title": "...", "description": "...", "labels": ["low", "monitoring", "nominal"] },
+  "CREATE_INCIDENT": { "title": "...", "description": "...", "labels": ["medium", "incident", "warning", "drift-detected"] },
+  "ESCALATE": { "title": "...", "description": "...", "labels": ["high", "escalation", "critical", "drift-detected"] }
 }
 
 Only include actions that are present. No markdown blocks, just the JSON.`;

@@ -1218,7 +1218,8 @@
                   Math.round(intent.confidence * 100) +
                   "%\n**Details:** " +
                   intent.reason,
-                labels: [intent.priority, "monitoring"],
+                labels: [intent.priority, "monitoring", "nominal"],
+                severity: "low",
                 priority: intent.priority,
                 confidence: intent.confidence,
                 reason: intent.reason,
@@ -1238,7 +1239,8 @@
                   Math.round(intent.confidence * 100) +
                   "%\n**Details:** " +
                   intent.reason,
-                labels: [intent.priority, "incident"],
+                labels: [intent.priority, "incident", "warning", "drift-detected"],
+                severity: intent.confidence > 0.7 ? "high" : "medium",
                 priority: intent.priority,
                 confidence: intent.confidence,
                 reason: intent.reason,
@@ -1256,6 +1258,8 @@
                   confidence: intent.confidence,
                   reason: intent.reason,
                 },
+                severity: "critical",
+                labels: ["escalation", "critical", "drift-detected"],
               };
             },
           },

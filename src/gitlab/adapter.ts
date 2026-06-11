@@ -110,12 +110,15 @@ export const executeGitLabPlan = async (
 					dryRun: false,
 				};
 			} catch (pipelineError: any) {
-				const isMissingCI =
-					pipelineError?.message?.includes("Missing CI config");
-				if (isMissingCI) {
+				const msg = pipelineError?.message ?? "";
+				const isPipelineFailure =
+					msg.includes("Missing CI config") ||
+					msg.includes("pipeline would have been empty") ||
+					msg.includes("400");
+				if (isPipelineFailure) {
 					// Fallback: create an escalation issue instead
 					const desc = [
-						`**Escalation** — pipeline trigger failed (missing CI config on remote).`,
+						`**Escalation** — pipeline trigger failed (${msg.substring(0, 120)}).`,
 						``,
 						`**Priority:** ${payload.variables?.priority ?? "unknown"}`,
 						`**Confidence:** ${payload.variables?.confidence ?? "unknown"}`,

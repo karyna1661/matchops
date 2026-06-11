@@ -95,7 +95,7 @@ export const executeGitLabPlan = async (
 						method: "POST",
 						headers,
 						body: JSON.stringify({
-							ref: "main",
+							ref: "master",
 							variables,
 						}),
 					},

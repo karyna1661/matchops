@@ -81,7 +81,7 @@ const buildAuditTrail = (
 		const warningSignals = drift.signals.filter(
 			(s) => s !== "critical-escalation",
 		);
-		if (warningSignals.length >= 2) {
+		if (warningSignals.length >= 3) {
 			entries.push({
 				step: "escalation",
 				statement:

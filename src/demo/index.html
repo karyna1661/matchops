@@ -201,6 +201,27 @@
         background: #fc6d26;
         color: #fff;
       }
+      .execute-btn:disabled {
+        opacity: 0.7;
+        cursor: wait;
+      }
+      .execute-btn:disabled::before {
+        content: "";
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border: 1.5px solid rgba(252, 109, 38, 0.3);
+        border-top-color: #fc6d26;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
       /* ── Settings ── */
       .settings-section {
@@ -291,6 +312,9 @@
         border: 0.5px solid var(--cmd-border);
         border-radius: 8px;
         overflow: hidden;
+        transition:
+          border-color 0.4s ease,
+          box-shadow 0.4s ease;
       }
       .drift-card.warning {
         border-color: rgba(186, 117, 23, 0.35);
@@ -473,6 +497,11 @@
       }
       .event-val span.crit {
         color: var(--status-crit-text);
+      }
+      .threshold-hint {
+        color: var(--cmd-muted) !important;
+        font-size: 9px;
+        font-weight: 400;
       }
 
       /* ── Actions Grid ── */
@@ -1126,7 +1155,7 @@
               triggeredBy.push(tr.event);
             }
           }
-          if (hasCriticalMetric || warningSignals.size >= 2)
+          if (hasCriticalMetric || warningSignals.size >= 3)
             return {
               level: "critical",
               signals: signals.concat(["critical-escalation"]),
@@ -1303,7 +1332,7 @@
             var ws = drift.signals.filter(function (s) {
               return s !== "critical-escalation";
             });
-            if (ws.length >= 2)
+            if (ws.length >= 3)
               entries.push({
                 step: "escalation",
                 statement:
@@ -1554,22 +1583,34 @@
             var e = events[i];
             var val = e.metric ? e.metric.value : "";
             var name = e.metric ? e.metric.name : "";
+            var threshold = e.metric ? e.metric.threshold : undefined;
             var dn = DISPLAY_NAMES[name] || name;
             var kn = KIND_NAMES[e.kind] || e.kind;
-            var isWarn =
-              (name === "queue_wait_minutes" && val > 12) ||
-              (name === "supporters_arrived" && val < 680) ||
-              (name === "staff_present" && val < 16) ||
-              (name === "vendors_ready" && val < 10);
+            // Use actual threshold from drift rules (not hardcoded values)
+            var rule = null;
+            for (var j = 0; j < DRIFT_RULES.length; j++) {
+              if (DRIFT_RULES[j].metricName === name && DRIFT_RULES[j].eventKind === e.kind) {
+                rule = DRIFT_RULES[j];
+                break;
+              }
+            }
+            var isWarn = false;
+            if (rule && typeof threshold === "number") {
+              var delta = rule.direction === "lower-is-worse" ? threshold - val : val - threshold;
+              isWarn = delta > 0;
+            }
             h +=
               '<div class="event-row"><div class="event-type">' +
               kn +
               '</div><div class="event-val">' +
               dn +
               " <span" +
-              (isWarn ? "" : name === "readiness_percent" ? ' class="ok"' : "") +
+              (isWarn ? "" : ' class="ok"') +
               ">" +
               val +
+              (threshold !== undefined
+                ? '<span class="threshold-hint"> / ' + threshold + "</span>"
+                : "") +
               "</span></div></div>";
           }
           feedList.innerHTML = h;
@@ -1640,16 +1681,19 @@
 
         function renderPlans(plans) {
           var h = "";
+          var PLAN_LABELS = {
+            "GITLAB_ISSUE:create_issue": "Create GitLab Issue",
+            "GITLAB_PIPELINE:trigger_pipeline": "Trigger CI Pipeline",
+            "GITLAB_COMMENT:post_comment": "Post Comment",
+          };
           for (var i = 0; i < plans.length; i++) {
             var p = plans[i];
+            var labelKey = p.target + ":" + p.action;
+            var label = PLAN_LABELS[labelKey] || p.action.replace(/_/g, " ");
             h +=
               '<div class="exec-row"><span class="exec-platform platform-gl">GitLab</span><span class="exec-action-name">' +
-              p.target +
-              " &#8212; " +
-              p.action +
-              '</span><span class="exec-key">' +
-              p.idempotencyKey.substring(0, 40) +
-              '...</span><span class="exec-mode">plan</span></div>';
+              label +
+              '</span><span class="exec-mode">plan</span></div>';
           }
           if (plans.length === 0)
             h = '<div style="color:var(--cmd-muted);font-size:10px;padding:8px">No plans</div>';

@@ -14,8 +14,11 @@ import { type FeedOverrides, generateOpsFeed } from "../events/feed.js";
 import type { OpsEvent } from "../events/schema.js";
 import { mapActionsToExecutionPlans } from "../execution/mapper.js";
 import type { ExecutionPlan } from "../execution/types.js";
-import { explainPipelineResult } from "../gemini/explainer.js";
-import type { GeminiExplanation } from "../gemini/types.js";
+import {
+	craftIssueContent,
+	explainPipelineResult,
+} from "../gemini/explainer.js";
+import type { GeminiExplanation, GeminiIssueContent } from "../gemini/types.js";
 import { executeAllPlans } from "../gitlab/adapter.js";
 import type { GitLabResult } from "../gitlab/types.js";
 import { decideActions } from "../policy/decideActions.js";
@@ -42,6 +45,7 @@ export type PipelineResult = {
 	plans: readonly ExecutionPlan[];
 	audit: readonly { step: string; statement: string }[];
 	gemini: GeminiExplanation | null;
+	geminiIssueContent: Record<string, GeminiIssueContent> | null;
 	gitlab: GitLabResult[];
 };
 
@@ -132,12 +136,25 @@ export const runPipeline = async (
 	});
 	const drift = detectOperationalDrift(events);
 	const actions = decideActions(drift);
-	const plans = mapActionsToExecutionPlans(actions);
+
+	// Gemini crafts issue content (title, description, labels)
+	const apiKey = config.geminiKey || process.env.GEMINI_API_KEY;
+	let geminiIssueContent: Record<string, GeminiIssueContent> | null = null;
+	try {
+		geminiIssueContent = await craftIssueContent({ drift, actions }, apiKey);
+	} catch (err) {
+		console.error("Gemini issue crafting failed silently:", err);
+	}
+
+	// Execution plans use Gemini-crafted content for issue payloads
+	const plans = mapActionsToExecutionPlans(
+		actions,
+		geminiIssueContent || undefined,
+	);
 	const audit = buildAuditTrail(events, drift, actions, plans);
 
 	let gemini: GeminiExplanation | null = null;
 	try {
-		const apiKey = config.geminiKey || process.env.GEMINI_API_KEY;
 		gemini = await explainPipelineResult(
 			{
 				events,
@@ -169,7 +186,16 @@ export const runPipeline = async (
 		}
 	}
 
-	return { events, drift, actions, plans, audit, gemini, gitlab };
+	return {
+		events,
+		drift,
+		actions,
+		plans,
+		audit,
+		gemini,
+		geminiIssueContent,
+		gitlab,
+	};
 };
 
 const server = http.createServer(async (req, res) => {

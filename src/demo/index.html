@@ -1517,14 +1517,22 @@
               if (d.gitlab && d.gitlab.length > 0) {
                 document.getElementById("glContainer").style.display = "block";
                 var h = "";
+                var issueContent = d.geminiIssueContent || {};
+                var actionTypes = d.actions || [];
                 for (var i = 0; i < d.gitlab.length; i++) {
                   var g = d.gitlab[i];
+                  var actType = actionTypes[i] ? actionTypes[i].type : null;
+                  var content = actType ? issueContent[actType] : null;
+                  var displayTitle = content ? content.title : g.target + " &#8212; " + g.action;
                   h +=
                     '<div class="exec-row"><span class="exec-platform platform-gl">GitLab</span><span class="exec-action-name">' +
-                    g.target +
-                    " &#8212; " +
-                    g.action +
+                    displayTitle +
                     "</span>";
+                  if (content && content.description)
+                    h +=
+                      '<div style="font-size:10px;color:var(--cmd-muted);margin-top:4px;white-space:pre-wrap;line-height:1.4">' +
+                      content.description +
+                      "</div>";
                   if (g.success && g.url)
                     h +=
                       '<a href="' +

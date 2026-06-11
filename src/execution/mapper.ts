@@ -1,3 +1,4 @@
+import type { GeminiIssueContent } from "../gemini/types.js";
 import type { ActionIntent } from "../policy/types.js";
 import type { ExecutionPlan, ExecutionTarget } from "./types.js";
 
@@ -88,11 +89,26 @@ const mappings: Record<string, Mapping> = {
 
 export const mapActionsToExecutionPlans = (
 	actions: readonly ActionIntent[],
+	contentOverrides?: Record<string, GeminiIssueContent>,
 ): readonly ExecutionPlan[] => {
 	return actions.map((action) => {
 		const mapping = mappings[action.type];
 		const payload = mapping.buildPayload(action);
-		const stablePayloadString = stableStringify(payload);
+
+		// Apply Gemini content overrides for issue-based targets
+		if (
+			contentOverrides &&
+			contentOverrides[action.type] &&
+			mapping.target === "GITLAB_ISSUE"
+		) {
+			const override = contentOverrides[action.type];
+			payload.title = override.title;
+			payload.description = override.description;
+			payload.labels = override.labels;
+		}
+
+		// Idempotency key uses original deterministic payload (before overrides)
+		const stablePayloadString = stableStringify(mapping.buildPayload(action));
 		const idempotencyKey = `matchops:${action.type}:${mapping.target}:${mapping.action}:${stablePayloadString}`;
 
 		return {

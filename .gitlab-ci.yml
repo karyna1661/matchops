@@ -10,7 +10,7 @@ test:
     - npm run check
     - npm test
   only:
-    - main
+    - master
     - merge_requests
 
 deploy:
@@ -21,7 +21,7 @@ deploy:
   script:
     - railway up --service=$SVC_ID
   only:
-    - main
+    - master
   when: manual
   needs:
     - test

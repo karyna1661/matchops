@@ -1,41 +1,37 @@
 import type { DriftState } from "../drift/detector.js";
 import {
-  BASELINE_ACTION_BY_LEVEL,
-  CRITICAL_ESCALATION_SIGNAL,
-  isKnownPhase2Signal,
+	BASELINE_ACTION_BY_LEVEL,
+	CRITICAL_ESCALATION_SIGNAL,
+	isKnownPhase2Signal,
 } from "./rules.js";
 import type { ActionIntent } from "./types.js";
 
-const clamp = (value: number): number => Math.min(1, Math.max(0, value));
-
-const roundToTwoDecimals = (value: number): number => Math.round(value * 100) / 100;
-
 const distinct = (values: readonly string[]): string[] => {
-  const result: string[] = [];
+	const result: string[] = [];
 
-  for (const value of values) {
-    if (!result.includes(value)) {
-      result.push(value);
-    }
-  }
+	for (const value of values) {
+		if (!result.includes(value)) {
+			result.push(value);
+		}
+	}
 
-  return result;
+	return result;
 };
 
 const formatSignals = (signals: readonly string[]): string =>
-  signals.length === 0 ? "none" : signals.join(", ");
+	signals.length === 0 ? "none" : signals.join(", ");
 
 export const decideActions = (drift: DriftState): readonly ActionIntent[] => {
-  const knownSignals = distinct(drift.signals.filter(isKnownPhase2Signal));
-  const unknownSignals = distinct(drift.signals.filter((signal) => !isKnownPhase2Signal(signal)));
-  const baseline = BASELINE_ACTION_BY_LEVEL[drift.level];
-  const action = knownSignals.includes(CRITICAL_ESCALATION_SIGNAL)
-    ? { type: "ESCALATE" as const, priority: "high" as const }
-    : baseline;
-  const confidence = roundToTwoDecimals(
-    clamp(drift.confidence + Math.min(knownSignals.length, 3) * 0.03),
-  );
-  const reason = `Drift level ${drift.level} produced ${action.type} because known signals: ${formatSignals(knownSignals)}; unknown signals: ${formatSignals(unknownSignals)}.`;
+	const knownSignals = distinct(drift.signals.filter(isKnownPhase2Signal));
+	const unknownSignals = distinct(
+		drift.signals.filter((signal) => !isKnownPhase2Signal(signal)),
+	);
+	const baseline = BASELINE_ACTION_BY_LEVEL[drift.level];
+	const action = knownSignals.includes(CRITICAL_ESCALATION_SIGNAL)
+		? { type: "ESCALATE" as const, priority: "high" as const }
+		: baseline;
+	const confidence = drift.confidence;
+	const reason = `Drift level ${drift.level} produced ${action.type} because known signals: ${formatSignals(knownSignals)}; unknown signals: ${formatSignals(unknownSignals)}.`;
 
-  return [{ ...action, confidence, reason }];
+	return [{ ...action, confidence, reason }];
 };

@@ -12,5 +12,10 @@
     "@types/node": "^20.17.19",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@google/adk": "^1.2.0",
+    "@google/adk-devtools": "^1.2.0",
+    "@modelcontextprotocol/server-gitlab": "^2025.4.25"
   }
 }

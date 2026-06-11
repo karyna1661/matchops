@@ -1,4 +1,4 @@
-export type ExecutionTarget = "GITLAB_ISSUE" | "GITLAB_PIPELINE" | "GITLAB_COMMENT";
+export type ExecutionTarget = "GITLAB_ISSUE" | "GITLAB_PIPELINE";
 
 export type ExecutionPlan = {
   target: ExecutionTarget;

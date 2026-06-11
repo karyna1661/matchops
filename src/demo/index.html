@@ -1,451 +1,1717 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MatchOps Commander</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;700;800&display=swap');
-:root{--cmd-bg:#0a0b0d;--cmd-surface:#111317;--cmd-border:rgba(255,255,255,0.08);--cmd-border-active:rgba(255,255,255,0.18);--cmd-text:#e8e6df;--cmd-muted:#6b6a65;--cmd-mono:'JetBrains Mono',monospace;--cmd-display:'Syne',sans-serif;--status-ok:#1d9e75;--status-warn:#ba7517;--status-crit:#a32d2d;--status-ok-bg:rgba(29,158,117,0.1);--status-warn-bg:rgba(186,117,23,0.1);--status-crit-bg:rgba(163,45,45,0.12);--status-ok-text:#5dcaa5;--status-warn-text:#ef9f27;--status-crit-text:#e24b4a;--accent:#5dcaa5}
-*{box-sizing:border-box;margin:0;padding:0}
-.cmd-root{background:var(--cmd-bg);border-radius:12px;border:0.5px solid var(--cmd-border-active);overflow:hidden;font-family:var(--cmd-mono);color:var(--cmd-text);font-size:12px;min-height:100vh}
-.cmd-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid var(--cmd-border);background:rgba(255,255,255,0.02)}
-.cmd-brand{font-family:var(--cmd-display);font-size:13px;font-weight:700;letter-spacing:0.08em;color:var(--cmd-text);display:flex;align-items:center;gap:8px}
-.brand-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse-dot 2s ease-in-out infinite}
-@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.4}}
-.cmd-meta{display:flex;align-items:center;gap:16px;font-size:10px;color:var(--cmd-muted);letter-spacing:0.05em}
-.meta-tag{padding:2px 8px;border-radius:3px;border:0.5px solid var(--cmd-border);font-size:9px;letter-spacing:0.1em;text-transform:uppercase}
-.cmd-pipeline{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:0.5px solid var(--cmd-border)}
-.pipeline-stage{padding:12px 14px;border-right:0.5px solid var(--cmd-border);position:relative;cursor:default;transition:background 0.15s}
-.pipeline-stage:last-child{border-right:none}
-.pipeline-stage:hover{background:rgba(255,255,255,0.02)}
-.stage-label{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--cmd-muted);margin-bottom:4px}
-.stage-name{font-family:var(--cmd-display);font-size:11px;font-weight:600;color:var(--cmd-text);margin-bottom:6px}
-.stage-type{font-size:9px;color:var(--cmd-muted);font-family:var(--cmd-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stage-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:5px;vertical-align:middle}
-.stage-arrow{position:absolute;right:-7px;top:50%;transform:translateY(-50%);width:14px;height:14px;background:var(--cmd-bg);border:0.5px solid var(--cmd-border-active);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--cmd-muted);z-index:2}
-.cmd-body{display:grid;grid-template-columns:240px 1fr;min-height:400px}
-.cmd-sidebar{border-right:0.5px solid var(--cmd-border);padding:14px 0;overflow-y:auto;max-height:70vh}
-.sidebar-section{margin-bottom:18px}
-.sidebar-heading{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--cmd-muted);padding:0 14px 8px;border-bottom:0.5px solid var(--cmd-border);margin-bottom:4px}
-.preset-row{display:flex;gap:6px;padding:6px 14px}
-.preset-btn{flex:1;padding:6px 0;border:0.5px solid var(--cmd-border);border-radius:4px;background:rgba(255,255,255,0.02);color:var(--cmd-muted);font-family:var(--cmd-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;text-align:center}
-.preset-btn:hover{border-color:var(--cmd-border-active);color:var(--cmd-text);background:rgba(255,255,255,0.04)}
-.preset-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(93,202,165,0.08)}
-.slider-group{padding:4px 14px}
-.slider-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid rgba(255,255,255,0.03)}
-.slider-row:last-child{border-bottom:none}
-.slider-label{font-size:9px;color:var(--cmd-muted);min-width:70px;letter-spacing:0.03em}
-.slider-input{flex:1;-webkit-appearance:none;appearance:none;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;outline:none}
-.slider-input::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;border:none;box-shadow:0 0 4px rgba(93,202,165,0.4)}
-.slider-input::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;border:none}
-.slider-val{font-size:10px;font-weight:500;color:var(--cmd-text);min-width:24px;text-align:right}
-.event-row{display:flex;align-items:flex-start;gap:8px;padding:6px 14px;font-size:10px;border-bottom:0.5px solid rgba(255,255,255,0.03);transition:background 0.1s;cursor:default}
-.event-row:hover{background:rgba(255,255,255,0.03)}
-.event-type{font-size:9px;color:var(--cmd-muted);font-family:var(--cmd-mono);min-width:60px;padding-top:1px}
-.event-val{color:var(--cmd-text);font-weight:500;flex:1;line-height:1.4}
-.event-val span{font-size:10px;color:var(--status-warn-text)}
-.event-val span.ok{color:var(--status-ok-text)}
-.event-val span.crit{color:var(--status-crit-text)}
-.cmd-main{padding:16px;display:flex;flex-direction:column;gap:12px}
-.section-label{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--cmd-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.section-label::after{content:'';flex:1;height:0.5px;background:var(--cmd-border)}
-.drift-card{border:0.5px solid var(--cmd-border);border-radius:8px;overflow:hidden}
-.drift-card.warning{border-color:rgba(186,117,23,0.35)}
-.drift-card.critical{border-color:rgba(163,45,45,0.4)}
-.drift-card.nominal{border-color:rgba(29,158,117,0.25)}
-.drift-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.02);border-bottom:0.5px solid var(--cmd-border)}
-.drift-label{font-size:10px;letter-spacing:0.08em;color:var(--cmd-muted);text-transform:uppercase}
-.drift-status{font-size:9px;padding:2px 8px;border-radius:3px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase}
-.drift-status.warning{background:var(--status-warn-bg);color:var(--status-warn-text);border:0.5px solid rgba(186,117,23,0.3)}
-.drift-status.critical{background:var(--status-crit-bg);color:var(--status-crit-text);border:0.5px solid rgba(163,45,45,0.35);animation:blink-badge 1.8s ease-in-out infinite}
-.drift-status.nominal{background:var(--status-ok-bg);color:var(--status-ok-text);border:0.5px solid rgba(29,158,117,0.25)}
-@keyframes blink-badge{0%,100%{opacity:1}50%{opacity:0.55}}
-.drift-body{padding:10px 12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.drift-metric{display:flex;flex-direction:column;gap:2px}
-.metric-key{font-size:9px;color:var(--cmd-muted);letter-spacing:0.05em}
-.metric-val{font-size:13px;font-weight:700;color:var(--cmd-text);font-family:var(--cmd-mono)}
-.metric-val.warn{color:var(--status-warn-text)}
-.metric-val.crit{color:var(--status-crit-text)}
-.metric-val.ok{color:var(--status-ok-text)}
-.conf-bar{grid-column:1/-1;margin-top:4px}
-.conf-bar-label{display:flex;justify-content:space-between;font-size:9px;color:var(--cmd-muted);margin-bottom:4px}
-.conf-bar-track{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden}
-.conf-bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease}
-.fill-warn{background:var(--status-warn-text)}
-.fill-crit{background:var(--status-crit-text)}
-.fill-ok{background:var(--status-ok-text)}
-.actions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.action-card{border:0.5px solid var(--cmd-border);border-radius:6px;padding:10px;background:rgba(255,255,255,0.015);transition:border-color 0.15s,background 0.15s;cursor:default}
-.action-card:hover{border-color:var(--cmd-border-active);background:rgba(255,255,255,0.03)}
-.action-card.fired{border-color:var(--accent);background:rgba(93,202,165,0.05)}
-.action-type{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--cmd-muted);margin-bottom:4px}
-.action-name{font-family:var(--cmd-display);font-size:11px;font-weight:600;color:var(--cmd-text);margin-bottom:6px}
-.action-target{font-size:9px;color:var(--cmd-muted);font-family:var(--cmd-mono);padding:3px 6px;background:rgba(255,255,255,0.04);border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.exec-list{display:flex;flex-direction:column;gap:6px}
-.exec-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border:0.5px solid var(--cmd-border);border-radius:6px;background:rgba(255,255,255,0.01);font-size:10px;transition:border-color 0.15s}
-.exec-row:hover{border-color:var(--cmd-border-active)}
-.exec-platform{font-size:9px;padding:2px 6px;border-radius:3px;letter-spacing:0.06em;text-transform:uppercase;font-weight:500}
-.platform-gl{background:rgba(252,109,38,0.12);color:#fc6d26;border:0.5px solid rgba(252,109,38,0.25)}
-.exec-action-name{flex:1;color:var(--cmd-text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.exec-key{font-size:8.5px;color:var(--cmd-muted);font-family:var(--cmd-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
-.exec-mode{font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,0.05);color:var(--cmd-muted);letter-spacing:0.06em;flex-shrink:0}
-.audit-list{display:flex;flex-direction:column;gap:0}
-.audit-row{display:flex;align-items:flex-start;gap:8px;padding:6px 10px;font-size:10px;border-left:2px solid var(--cmd-border);margin-left:6px;transition:border-color 0.15s}
-.audit-row.step-rule-match{border-left-color:var(--status-warn-text)}
-.audit-row.step-escalation{border-left-color:var(--status-crit-text)}
-.audit-row.step-decision{border-left-color:var(--accent)}
-.audit-row.step-execution{border-left-color:rgba(252,109,38,0.6)}
-.audit-step{font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--cmd-muted);min-width:70px;padding-top:1px}
-.audit-statement{color:var(--cmd-text);line-height:1.5;font-family:var(--cmd-mono);font-size:10px}
-.cmd-footer{border-top:0.5px solid var(--cmd-border);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.01)}
-.footer-stats{display:flex;gap:20px;font-size:9px;color:var(--cmd-muted);letter-spacing:0.06em}
-.footer-stat span{color:var(--cmd-text);font-weight:500}
-.footer-badge{font-size:9px;padding:3px 10px;border-radius:3px;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;background:var(--status-ok-bg);color:var(--status-ok-text);border:0.5px solid rgba(29,158,117,0.25)}
-.footer-badge.warning{background:var(--status-warn-bg);color:var(--status-warn-text);border-color:rgba(186,117,23,0.25)}
-.footer-badge.critical{background:var(--status-crit-bg);color:var(--status-crit-text);border-color:rgba(163,45,45,0.25)}
-</style>
-</head>
-<body>
-<div class="cmd-root">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MatchOps Commander</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;700;800&display=swap");
+      :root {
+        --cmd-bg: #0a0b0d;
+        --cmd-surface: #111317;
+        --cmd-border: rgba(255, 255, 255, 0.08);
+        --cmd-border-active: rgba(255, 255, 255, 0.18);
+        --cmd-text: #e8e6df;
+        --cmd-muted: #6b6a65;
+        --cmd-mono: "JetBrains Mono", monospace;
+        --cmd-display: "Syne", sans-serif;
+        --status-ok: #1d9e75;
+        --status-warn: #ba7517;
+        --status-crit: #a32d2d;
+        --status-ok-bg: rgba(29, 158, 117, 0.1);
+        --status-warn-bg: rgba(186, 117, 23, 0.1);
+        --status-crit-bg: rgba(163, 45, 45, 0.12);
+        --status-ok-text: #5dcaa5;
+        --status-warn-text: #ef9f27;
+        --status-crit-text: #e24b4a;
+        --accent: #5dcaa5;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: var(--cmd-bg);
+        font-family: var(--cmd-mono);
+        color: var(--cmd-text);
+        font-size: 12px;
+      }
 
-<div class="cmd-header">
-<div class="cmd-brand"><div class="brand-dot"></div>MATCHOPS COMMANDER</div>
-<div class="cmd-meta">
-<span>EVENT-2026-MATCH-17</span>
-<span class="meta-tag">Dry Run</span>
-<span class="meta-tag">GitLab Track</span>
-</div>
-</div>
+      /* ── Header ── */
+      .cmd-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+        border-bottom: 0.5px solid var(--cmd-border);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .cmd-brand {
+        font-family: var(--cmd-display);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .brand-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 6px var(--accent);
+        animation: pulse-dot 2s ease-in-out infinite;
+      }
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+      .cmd-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 10px;
+        color: var(--cmd-muted);
+        letter-spacing: 0.05em;
+      }
+      .meta-tag {
+        padding: 2px 8px;
+        border-radius: 3px;
+        border: 0.5px solid var(--cmd-border);
+        font-size: 9px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
 
-<div class="cmd-pipeline">
-<div class="pipeline-stage">
-<div class="stage-label">Phase 1</div>
-<div class="stage-name">Feed</div>
-<div class="stage-type"><span class="stage-dot"></span>OpsEvent[]</div>
-<div class="stage-arrow">&#8594;</div>
-</div>
-<div class="pipeline-stage">
-<div class="stage-label">Phase 2</div>
-<div class="stage-name">Drift</div>
-<div class="stage-type"><span class="stage-dot"></span>DriftState</div>
-<div class="stage-arrow">&#8594;</div>
-</div>
-<div class="pipeline-stage">
-<div class="stage-label">Phase 3</div>
-<div class="stage-name">Decision</div>
-<div class="stage-type"><span class="stage-dot"></span>ActionIntent[]</div>
-<div class="stage-arrow">&#8594;</div>
-</div>
-<div class="pipeline-stage">
-<div class="stage-label">Phase 4</div>
-<div class="stage-name">Execution</div>
-<div class="stage-type"><span class="stage-dot"></span>ExecutionPlan[]</div>
-</div>
-</div>
+      /* ── Container ── */
+      .cmd-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
 
-<div class="cmd-body">
+      /* ── Presets Row ── */
+      .presets-row {
+        display: flex;
+        gap: 8px;
+      }
+      .preset-btn {
+        padding: 8px 20px;
+        border: 0.5px solid var(--cmd-border);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--cmd-muted);
+        font-family: var(--cmd-mono);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .preset-btn:hover {
+        border-color: var(--cmd-border-active);
+        color: var(--cmd-text);
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .preset-btn.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(93, 202, 165, 0.08);
+      }
 
-<div class="cmd-sidebar">
+      /* ── Sliders Grid ── */
+      .sliders-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 24px;
+      }
+      .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0;
+      }
+      .slider-label {
+        font-size: 10px;
+        color: var(--cmd-muted);
+        min-width: 120px;
+        letter-spacing: 0.03em;
+      }
+      .slider-input {
+        flex: 1;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 2px;
+        outline: none;
+      }
+      .slider-input::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 0 4px rgba(93, 202, 165, 0.4);
+      }
+      .slider-input::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+        border: none;
+      }
+      .slider-val {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--cmd-text);
+        min-width: 32px;
+        text-align: right;
+      }
 
-<div class="sidebar-section">
-<div class="sidebar-heading">Scenarios</div>
-<div class="preset-row">
-<button class="preset-btn" id="p-nominal">Nominal</button>
-<button class="preset-btn" id="p-warning">Warning</button>
-<button class="preset-btn active" id="p-critical">Critical</button>
-</div>
-</div>
+      /* ── Execute Button ── */
+      .execute-btn {
+        width: 100%;
+        padding: 10px;
+        background: rgba(252, 109, 38, 0.15);
+        border: 1px solid #fc6d26;
+        color: #fc6d26;
+        font-family: var(--cmd-mono);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.2s;
+      }
+      .execute-btn:hover {
+        background: #fc6d26;
+        color: #fff;
+      }
 
-<div class="sidebar-section">
-<div class="sidebar-heading">Controls</div>
-<div class="slider-group">
-<div class="slider-row">
-<span class="slider-label">Transport</span>
-<input type="range" class="slider-input" id="s-transport" min="400" max="1000" value="620" step="10">
-<span class="slider-val" id="v-transport">620</span>
-</div>
-<div class="slider-row">
-<span class="slider-label">Gate wait</span>
-<input type="range" class="slider-input" id="s-gate-val" min="0" max="30" value="18" step="1">
-<span class="slider-val" id="v-gate-val">18</span>
-</div>
-<div class="slider-row">
-<span class="slider-label">Gate thr</span>
-<input type="range" class="slider-input" id="s-gate-thr" min="2" max="20" value="12" step="1">
-<span class="slider-val" id="v-gate-thr">12</span>
-</div>
-<div class="slider-row">
-<span class="slider-label">Staff</span>
-<input type="range" class="slider-input" id="s-staff" min="0" max="30" value="12" step="1">
-<span class="slider-val" id="v-staff">12</span>
-</div>
-<div class="slider-row">
-<span class="slider-label">Vendors</span>
-<input type="range" class="slider-input" id="s-vendor" min="0" max="15" value="7" step="1">
-<span class="slider-val" id="v-vendor">7</span>
-</div>
-</div>
-</div>
+      /* ── Settings ── */
+      .settings-section {
+        border: 0.5px solid var(--cmd-border);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .settings-toggle {
+        width: 100%;
+        padding: 8px 14px;
+        background: none;
+        border: none;
+        color: var(--cmd-muted);
+        font-family: var(--cmd-mono);
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: color 0.15s;
+      }
+      .settings-toggle:hover {
+        color: var(--cmd-text);
+      }
+      .settings-toggle .arrow {
+        transition: transform 0.2s;
+        font-size: 8px;
+      }
+      .settings-toggle.open .arrow {
+        transform: rotate(90deg);
+      }
+      .settings-panel {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        background: rgba(255, 255, 255, 0.015);
+      }
+      .settings-panel.open {
+        max-height: 200px;
+      }
+      .settings-inner {
+        padding: 10px 14px;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .settings-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .settings-row label {
+        font-size: 9px;
+        color: var(--cmd-muted);
+        min-width: 55px;
+        letter-spacing: 0.05em;
+      }
+      .config-input {
+        background: rgba(255, 255, 255, 0.05);
+        border: 0.5px solid var(--cmd-border);
+        color: var(--cmd-text);
+        padding: 4px 8px;
+        font-family: var(--cmd-mono);
+        font-size: 9px;
+        border-radius: 4px;
+        width: 200px;
+      }
 
-<div class="sidebar-section">
-<div class="sidebar-heading">Live feed</div>
-<div id="feedList"></div>
-</div>
+      /* ── Drift + Feed Row ── */
+      .drift-feed-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      @media (max-width: 800px) {
+        .drift-feed-row {
+          grid-template-columns: 1fr;
+        }
+        .sliders-grid {
+          grid-template-columns: 1fr;
+        }
+      }
 
-<div class="sidebar-section">
-<div class="sidebar-heading">Drift signals</div>
-<div id="signalList"></div>
-</div>
+      /* ── Drift Card ── */
+      .drift-card {
+        border: 0.5px solid var(--cmd-border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .drift-card.warning {
+        border-color: rgba(186, 117, 23, 0.35);
+      }
+      .drift-card.critical {
+        border-color: rgba(163, 45, 45, 0.4);
+      }
+      .drift-card.nominal {
+        border-color: rgba(29, 158, 117, 0.25);
+      }
+      .drift-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 0.5px solid var(--cmd-border);
+      }
+      .drift-label {
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--cmd-muted);
+        text-transform: uppercase;
+      }
+      .drift-status {
+        font-size: 9px;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .drift-status.warning {
+        background: var(--status-warn-bg);
+        color: var(--status-warn-text);
+        border: 0.5px solid rgba(186, 117, 23, 0.3);
+      }
+      .drift-status.critical {
+        background: var(--status-crit-bg);
+        color: var(--status-crit-text);
+        border: 0.5px solid rgba(163, 45, 45, 0.35);
+        animation: blink-badge 1.8s ease-in-out infinite;
+      }
+      .drift-status.nominal {
+        background: var(--status-ok-bg);
+        color: var(--status-ok-text);
+        border: 0.5px solid rgba(29, 158, 117, 0.25);
+      }
+      @keyframes blink-badge {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.55;
+        }
+      }
+      .drift-body {
+        padding: 10px 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      .drift-metric {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .metric-key {
+        font-size: 9px;
+        color: var(--cmd-muted);
+        letter-spacing: 0.05em;
+      }
+      .metric-val {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--cmd-text);
+        font-family: var(--cmd-mono);
+      }
+      .metric-val.warn {
+        color: var(--status-warn-text);
+      }
+      .metric-val.crit {
+        color: var(--status-crit-text);
+      }
+      .metric-val.ok {
+        color: var(--status-ok-text);
+      }
+      .conf-bar {
+        grid-column: 1/-1;
+        margin-top: 4px;
+      }
+      .conf-bar-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 9px;
+        color: var(--cmd-muted);
+        margin-bottom: 4px;
+      }
+      .conf-bar-track {
+        height: 3px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .conf-bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.6s ease;
+      }
+      .fill-warn {
+        background: var(--status-warn-text);
+      }
+      .fill-crit {
+        background: var(--status-crit-text);
+      }
+      .fill-ok {
+        background: var(--status-ok-text);
+      }
 
-</div>
+      /* ── Feed / Signals Panel ── */
+      .feed-panel {
+        border: 0.5px solid var(--cmd-border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .feed-header {
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 0.5px solid var(--cmd-border);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--cmd-muted);
+        text-transform: uppercase;
+      }
+      .feed-body {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+      .feed-col {
+        padding: 8px 0;
+      }
+      .feed-col:first-child {
+        border-right: 0.5px solid var(--cmd-border);
+      }
+      .feed-col-heading {
+        font-size: 8px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--cmd-muted);
+        padding: 0 12px 6px;
+      }
+      .event-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 5px 12px;
+        font-size: 10px;
+        border-bottom: 0.5px solid rgba(255, 255, 255, 0.03);
+      }
+      .event-type {
+        font-size: 9px;
+        color: var(--cmd-muted);
+        font-family: var(--cmd-mono);
+        min-width: 56px;
+        padding-top: 1px;
+      }
+      .event-val {
+        color: var(--cmd-text);
+        font-weight: 500;
+        flex: 1;
+        line-height: 1.4;
+      }
+      .event-val span {
+        font-size: 10px;
+        color: var(--status-warn-text);
+      }
+      .event-val span.ok {
+        color: var(--status-ok-text);
+      }
+      .event-val span.crit {
+        color: var(--status-crit-text);
+      }
 
-<div class="cmd-main">
+      /* ── Actions Grid ── */
+      .section-label {
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--cmd-muted);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .section-label::after {
+        content: "";
+        flex: 1;
+        height: 0.5px;
+        background: var(--cmd-border);
+      }
+      .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .action-card {
+        border: 0.5px solid var(--cmd-border);
+        border-radius: 6px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.015);
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+        cursor: default;
+      }
+      .action-card:hover {
+        border-color: var(--cmd-border-active);
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .action-card.fired {
+        border-color: var(--accent);
+        background: rgba(93, 202, 165, 0.05);
+      }
+      .action-type {
+        font-size: 9px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--cmd-muted);
+        margin-bottom: 4px;
+      }
+      .action-name {
+        font-family: var(--cmd-display);
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--cmd-text);
+        margin-bottom: 6px;
+      }
+      .action-target {
+        font-size: 9px;
+        color: var(--cmd-muted);
+        font-family: var(--cmd-mono);
+        padding: 3px 6px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-<div>
-<div class="section-label">Phase 2 &#183; drift state</div>
-<div class="drift-card" id="driftCard">
-<div class="drift-header">
-<div class="drift-label">detectOperationalDrift(events)</div>
-<div class="drift-status nominal" id="driftBadge">Nominal</div>
-</div>
-<div class="drift-body">
-<div class="drift-metric">
-<div class="metric-key">severity</div>
-<div class="metric-val" id="driftSeverity">-</div>
-</div>
-<div class="drift-metric">
-<div class="metric-key">signals</div>
-<div class="metric-val" id="driftSignals" style="font-size:10px">-</div>
-</div>
-<div class="drift-metric">
-<div class="metric-key">rule</div>
-<div class="metric-val" id="driftRule" style="font-size:10px">-</div>
-</div>
-<div class="conf-bar">
-<div class="conf-bar-label"><span>confidence</span><span id="confVal">0%</span></div>
-<div class="conf-bar-track"><div class="conf-bar-fill fill-ok" id="confFill" style="width:0%"></div></div>
-</div>
-</div>
-</div>
-</div>
+      /* ── Execution / Audit / Gemini / GitLab ── */
+      .exec-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .exec-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border: 0.5px solid var(--cmd-border);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.01);
+        font-size: 10px;
+        transition: border-color 0.15s;
+      }
+      .exec-row:hover {
+        border-color: var(--cmd-border-active);
+      }
+      .exec-platform {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-weight: 500;
+      }
+      .platform-gl {
+        background: rgba(252, 109, 38, 0.12);
+        color: #fc6d26;
+        border: 0.5px solid rgba(252, 109, 38, 0.25);
+      }
+      .exec-action-name {
+        flex: 1;
+        color: var(--cmd-text);
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .exec-key {
+        font-size: 8.5px;
+        color: var(--cmd-muted);
+        font-family: var(--cmd-mono);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+      }
+      .exec-mode {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--cmd-muted);
+        letter-spacing: 0.06em;
+        flex-shrink: 0;
+      }
+      .audit-list {
+        display: flex;
+        flex-direction: column;
+      }
+      .audit-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 6px 10px;
+        font-size: 10px;
+        border-left: 2px solid var(--cmd-border);
+        margin-left: 6px;
+        transition: border-color 0.15s;
+      }
+      .audit-row.step-rule-match {
+        border-left-color: var(--status-warn-text);
+      }
+      .audit-row.step-escalation {
+        border-left-color: var(--status-crit-text);
+      }
+      .audit-row.step-decision {
+        border-left-color: var(--accent);
+      }
+      .audit-row.step-execution {
+        border-left-color: rgba(252, 109, 38, 0.6);
+      }
+      .audit-step {
+        font-size: 8px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--cmd-muted);
+        min-width: 70px;
+        padding-top: 1px;
+      }
+      .audit-statement {
+        color: var(--cmd-text);
+        line-height: 1.5;
+        font-family: var(--cmd-mono);
+        font-size: 10px;
+      }
+      .gemini-panel {
+        border: 0.5px solid rgba(138, 180, 248, 0.3);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(138, 180, 248, 0.05);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+      .gemini-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--cmd-display);
+        font-size: 12px;
+        color: #8ab4f8;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .gemini-section {
+        margin-bottom: 8px;
+      }
+      .gemini-section-title {
+        font-size: 9px;
+        text-transform: uppercase;
+        color: var(--cmd-muted);
+        letter-spacing: 0.1em;
+        margin-bottom: 2px;
+      }
+      .gl-panel {
+        border: 0.5px solid rgba(252, 109, 38, 0.3);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(252, 109, 38, 0.05);
+      }
+      .gl-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--cmd-display);
+        font-size: 12px;
+        color: #fc6d26;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <div class="cmd-header">
+      <div class="cmd-brand">
+        <div class="brand-dot"></div>
+        MATCHOPS COMMANDER
+      </div>
+      <div class="cmd-meta">
+        <span>EVENT-2026-MATCH-17</span>
+        <span class="meta-tag" id="runModeTag">Dry Run</span>
+        <span class="meta-tag">GitLab Track</span>
+      </div>
+    </div>
 
-<div>
-<div class="section-label">Phase 3 &#183; action intents</div>
-<div class="actions-grid">
-<div class="action-card" id="ac-monitor">
-<div class="action-type">Intent &#183; MONITOR</div>
-<div class="action-name">Monitor</div>
-<div class="action-target">MONITOR</div>
-</div>
-<div class="action-card" id="ac-incident">
-<div class="action-type">Intent &#183; CREATE_INCIDENT</div>
-<div class="action-name">Create Incident</div>
-<div class="action-target">CREATE_INCIDENT</div>
-</div>
-<div class="action-card" id="ac-escalate">
-<div class="action-type">Intent &#183; ESCALATE</div>
-<div class="action-name">Escalate</div>
-<div class="action-target">ESCALATE</div>
-</div>
-</div>
-</div>
+    <div class="cmd-container">
+      <!-- Presets -->
+      <div class="presets-row">
+        <button class="preset-btn" id="p-nominal">Nominal</button>
+        <button class="preset-btn" id="p-warning">Warning</button>
+        <button class="preset-btn active" id="p-critical">Critical</button>
+      </div>
 
-<div>
-<div class="section-label">Phase 4 &#183; execution plans</div>
-<div class="exec-list" id="execList"></div>
-</div>
+      <!-- Sliders -->
+      <div class="sliders-grid">
+        <div class="slider-row">
+          <span class="slider-label">Supporters arrived</span>
+          <input
+            type="range"
+            class="slider-input"
+            id="s-transport"
+            min="400"
+            max="1000"
+            value="620"
+            step="10"
+          />
+          <span class="slider-val" id="v-transport">620</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Queue wait (min)</span>
+          <input
+            type="range"
+            class="slider-input"
+            id="s-gate-val"
+            min="0"
+            max="30"
+            value="18"
+            step="1"
+          />
+          <span class="slider-val" id="v-gate-val">18</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Threshold (min)</span>
+          <input
+            type="range"
+            class="slider-input"
+            id="s-gate-thr"
+            min="2"
+            max="20"
+            value="12"
+            step="1"
+          />
+          <span class="slider-val" id="v-gate-thr">12</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Staff present</span>
+          <input
+            type="range"
+            class="slider-input"
+            id="s-staff"
+            min="0"
+            max="30"
+            value="12"
+            step="1"
+          />
+          <span class="slider-val" id="v-staff">12</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">Vendors ready</span>
+          <input
+            type="range"
+            class="slider-input"
+            id="s-vendor"
+            min="0"
+            max="15"
+            value="7"
+            step="1"
+          />
+          <span class="slider-val" id="v-vendor">7</span>
+        </div>
+      </div>
 
-<div>
-<div class="section-label">Audit trail</div>
-<div class="audit-list" id="auditTrail"></div>
-</div>
+      <!-- Execute Button -->
+      <button class="execute-btn" id="btnExecute">Execute Actions</button>
 
-</div>
-</div>
+      <!-- Settings -->
+      <div class="settings-section">
+        <button class="settings-toggle" id="settingsToggle">
+          <span>Settings</span>
+          <span class="arrow">&#9654;</span>
+        </button>
+        <div class="settings-panel" id="settingsPanel">
+          <div class="settings-inner">
+            <div class="settings-row">
+              <label>Gemini Key</label>
+              <input type="password" id="geminiKey" class="config-input" placeholder="AIza..." />
+            </div>
+            <div class="settings-row">
+              <label>GitLab Token</label>
+              <input
+                type="password"
+                id="gitlabToken"
+                class="config-input"
+                placeholder="glpat-..."
+              />
+            </div>
+            <div class="settings-row">
+              <label>Project ID</label>
+              <input type="text" id="gitlabProjectId" class="config-input" placeholder="83034413" />
+            </div>
+          </div>
+        </div>
+      </div>
 
-<div class="cmd-footer">
-<div class="footer-stats">
-<div class="footer-stat">tests <span>46</span></div>
-<div class="footer-stat">phases <span>4 / 4</span></div>
-<div class="footer-stat">actions <span id="fActions">-</span></div>
-<div class="footer-stat">idempotency <span>keyed</span></div>
-<div class="footer-stat">LLM in control path <span style="color:var(--status-crit-text)">no</span></div>
-</div>
-<div class="footer-badge" id="fBadge">All systems nominal</div>
-</div>
+      <!-- Drift + Feed -->
+      <div class="drift-feed-row">
+        <div>
+          <div class="section-label">Phase 2 &#183; drift state</div>
+          <div class="drift-card" id="driftCard">
+            <div class="drift-header">
+              <div class="drift-label">Drift Detection</div>
+              <div class="drift-status nominal" id="driftBadge">Nominal</div>
+            </div>
+            <div class="drift-body">
+              <div class="drift-metric">
+                <div class="metric-key">severity</div>
+                <div class="metric-val" id="driftSeverity">-</div>
+              </div>
+              <div class="drift-metric">
+                <div class="metric-key">signals</div>
+                <div class="metric-val" id="driftSignals" style="font-size: 10px">-</div>
+              </div>
+              <div class="drift-metric">
+                <div class="metric-key">rule</div>
+                <div class="metric-val" id="driftRule" style="font-size: 10px">-</div>
+              </div>
+              <div class="conf-bar">
+                <div class="conf-bar-label">
+                  <span>confidence</span><span id="confVal">0%</span>
+                </div>
+                <div class="conf-bar-track">
+                  <div class="conf-bar-fill fill-ok" id="confFill" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="feed-panel">
+          <div class="feed-header">Live Data</div>
+          <div class="feed-body">
+            <div class="feed-col">
+              <div class="feed-col-heading">Feed</div>
+              <div id="feedList"></div>
+            </div>
+            <div class="feed-col">
+              <div class="feed-col-heading">Drift Signals</div>
+              <div id="signalList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-</div>
+      <!-- Actions -->
+      <div>
+        <div class="section-label">Phase 3 &#183; action intents</div>
+        <div class="actions-grid">
+          <div class="action-card" id="ac-monitor">
+            <div class="action-type">Intent &#183; MONITOR</div>
+            <div class="action-name">Monitor</div>
+            <div class="action-target">MONITOR</div>
+          </div>
+          <div class="action-card" id="ac-incident">
+            <div class="action-type">Intent &#183; CREATE_INCIDENT</div>
+            <div class="action-name">Create Incident</div>
+            <div class="action-target">CREATE_INCIDENT</div>
+          </div>
+          <div class="action-card" id="ac-escalate">
+            <div class="action-type">Intent &#183; ESCALATE</div>
+            <div class="action-name">Escalate</div>
+            <div class="action-target">ESCALATE</div>
+          </div>
+        </div>
+      </div>
 
-<script>
-(function(){
-var PRESETS={
-  nominal:{gate_val:5,gate_thr:12,staff:20,vendor:12,transport_val:900},
-  warning:{gate_val:15,gate_thr:12,staff:14,vendor:9,transport_val:620},
-  critical:{gate_val:18,gate_thr:12,staff:12,vendor:7,transport_val:620}
-};
-var sGateVal=document.getElementById("s-gate-val");
-var sGateThr=document.getElementById("s-gate-thr");
-var sStaff=document.getElementById("s-staff");
-var sVendor=document.getElementById("s-vendor");
-var sTransport=document.getElementById("s-transport");
-var vGateVal=document.getElementById("v-gate-val");
-var vGateThr=document.getElementById("v-gate-thr");
-var vStaff=document.getElementById("v-staff");
-var vVendor=document.getElementById("v-vendor");
-var vTransport=document.getElementById("v-transport");
-var feedList=document.getElementById("feedList");
-var signalList=document.getElementById("signalList");
-var driftCard=document.getElementById("driftCard");
-var driftBadge=document.getElementById("driftBadge");
-var driftSeverity=document.getElementById("driftSeverity");
-var driftSignals=document.getElementById("driftSignals");
-var driftRule=document.getElementById("driftRule");
-var confVal=document.getElementById("confVal");
-var confFill=document.getElementById("confFill");
-var execList=document.getElementById("execList");
-var auditTrail=document.getElementById("auditTrail");
-var fActions=document.getElementById("fActions");
-var fBadge=document.getElementById("fBadge");
-var pNominal=document.getElementById("p-nominal");
-var pWarning=document.getElementById("p-warning");
-var pCritical=document.getElementById("p-critical");
+      <!-- Execution Plans -->
+      <div>
+        <div class="section-label">Phase 4 &#183; execution plans</div>
+        <div class="exec-list" id="execList"></div>
+      </div>
 
-function getConfig(){
-  return{feedOverrides:{
-    transport_inflow_lag:{value:+sTransport.value},
-    gate_pressure_rising:{value:+sGateVal.value,threshold:+sGateThr.value},
-    staffing_gap_detected:{value:+sStaff.value},
-    vendor_readiness_delay:{value:+sVendor.value}
-  }};
-}
+      <!-- Audit Trail -->
+      <div>
+        <div class="section-label">Audit trail</div>
+        <div class="audit-list" id="auditTrail"></div>
+      </div>
 
-function applyPreset(name){
-  var p=PRESETS[name];
-  sGateVal.value=p.gate_val;vGateVal.textContent=p.gate_val;
-  sGateThr.value=p.gate_thr;vGateThr.textContent=p.gate_thr;
-  sStaff.value=p.staff;vStaff.textContent=p.staff;
-  sVendor.value=p.vendor;vVendor.textContent=p.vendor;
-  sTransport.value=p.transport_val;vTransport.textContent=p.transport_val;
-  pNominal.className="preset-btn"+(name==="nominal"?" active":"");
-  pWarning.className="preset-btn"+(name==="warning"?" active":"");
-  pCritical.className="preset-btn"+(name==="critical"?" active":"");
-  run();
-}
+      <!-- Gemini Explanation -->
+      <div id="geminiContainer" style="display: none">
+        <div class="gemini-panel">
+          <div class="gemini-header">&#10024; Gemini Explanation</div>
+          <div class="gemini-section">
+            <div class="gemini-section-title">Summary</div>
+            <div id="gemSummary"></div>
+          </div>
+          <div class="gemini-section">
+            <div class="gemini-section-title">Drift Analysis</div>
+            <div id="gemDrift"></div>
+          </div>
+          <div class="gemini-section">
+            <div class="gemini-section-title">Action Rationale</div>
+            <div id="gemRationale"></div>
+          </div>
+          <div class="gemini-section">
+            <div class="gemini-section-title">Risk Assessment</div>
+            <div id="gemRisk"></div>
+          </div>
+          <div class="gemini-section">
+            <div class="gemini-section-title">Recommended Next Steps</div>
+            <ul id="gemSteps" style="padding-left: 16px; margin-top: 4px"></ul>
+          </div>
+        </div>
+      </div>
 
-function run(){
-  fetch("/api/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(getConfig())})
-  .then(function(r){return r.json()})
-  .then(function(d){
-    renderFeed(d.events);
-    renderSignals(d.drift);
-    renderDrift(d.drift);
-    renderActions(d.actions);
-    renderPlans(d.plans);
-    renderAudit(d.audit);
-    renderFooter(d);
-  });
-}
+      <!-- GitLab Results -->
+      <div id="glContainer" style="display: none">
+        <div class="gl-panel">
+          <div class="gl-header">GitLab Execution Results</div>
+          <div class="exec-list" id="glResults"></div>
+        </div>
+      </div>
+    </div>
 
-function renderFeed(events){
-  var h="";
-  for(var i=0;i<events.length;i++){
-    var e=events[i];
-    var val=e.metric?e.metric.value:"";
-    var name=e.metric?e.metric.name:"";
-    var isWarn=(name==="queue_wait_minutes"&&val>12)||(name==="supporters_arrived"&&val<680)||(name==="staff_present"&&val<16)||(name==="vendors_ready"&&val<10);
-    var cls=isWarn?"":(name==="readiness_percent"?" ok":"");
-    h+='<div class="event-row"><div class="event-type">'+e.kind.replace("_"," ")+'</div><div class="event-val">'+name.replace("_"," ")+' <span'+(cls?' class="'+cls+'"':"")+'>'+val+'</span></div></div>';
-  }
-  feedList.innerHTML=h;
-}
+    <script>
+      (function () {
+        // ── Client-side pipeline (ported from src/ TypeScript) ──
+        // All pure functions — no server round-trip for slider updates.
 
-function renderSignals(drift){
-  var h="";
-  if(drift.signals.length===0){
-    h='<div class="event-row"><div class="event-type">-</div><div class="event-val"><span class="ok">no signals</span></div></div>';
-  }else{
-    for(var i=0;i<drift.signals.length;i++){
-      var s=drift.signals[i];
-      var isCrit=s==="critical-escalation";
-      h+='<div class="event-row"><div class="event-type">'+(isCrit?"escalate":"signal")+'</div><div class="event-val"><span'+(isCrit?' class="crit"':"")+'>'+s+'</span></div></div>';
-    }
-  }
-  signalList.innerHTML=h;
-}
+        var DRIFT_RULES = [
+          {
+            signal: "transport-arrival-lag",
+            metricName: "supporters_arrived",
+            eventKind: "transport_inflow",
+            direction: "lower-is-worse",
+            criticalDelta: 120,
+          },
+          {
+            signal: "gate-queue-pressure",
+            metricName: "queue_wait_minutes",
+            eventKind: "gate_capacity",
+            direction: "higher-is-worse",
+            criticalDelta: 12,
+          },
+          {
+            signal: "staffing-gap",
+            metricName: "staff_present",
+            eventKind: "staffing_status",
+            direction: "lower-is-worse",
+            criticalDelta: 8,
+          },
+          {
+            signal: "vendor-readiness-gap",
+            metricName: "vendors_ready",
+            eventKind: "vendor_readiness",
+            direction: "lower-is-worse",
+            criticalDelta: 4,
+          },
+        ];
 
-function renderDrift(drift){
-  var lvl=drift.level;
-  driftCard.className="drift-card "+(lvl==="none"?"nominal":lvl);
-  driftBadge.className="drift-status "+(lvl==="none"?"nominal":lvl);
-  driftBadge.textContent=lvl==="none"?"Nominal":lvl.charAt(0).toUpperCase()+lvl.slice(1);
-  driftSeverity.textContent=lvl.toUpperCase();
-  driftSeverity.className="metric-val "+(lvl==="none"?"ok":lvl==="warning"?"warn":"crit");
-  var sigText=drift.signals.length>0?drift.signals.join(" + "):"none";
-  driftSignals.textContent=sigText;
-  driftSignals.className="metric-val "+(drift.signals.length>0?"warn":"ok");
-  var ruleText=drift.level==="critical"?"critical-escalation":drift.level==="warning"?"threshold-breach":"-";
-  driftRule.textContent=ruleText;
-  var pct=Math.round(drift.confidence*100);
-  confVal.textContent=pct+"%";
-  confVal.style.color=pct>=80?"var(--status-crit-text)":pct>=40?"var(--status-warn-text)":"var(--status-ok-text)";
-  confFill.style.width=pct+"%";
-  confFill.className="conf-bar-fill "+(pct>=80?"fill-crit":pct>=40?"fill-warn":"fill-ok");
-}
+        var KNOWN_SIGNALS = new Set([
+          "transport-arrival-lag",
+          "gate-queue-pressure",
+          "staffing-gap",
+          "vendor-readiness-gap",
+          "critical-escalation",
+        ]);
 
-function renderActions(actions){
-  var types={MONITOR:false,CREATE_INCIDENT:false,ESCALATE:false};
-  for(var i=0;i<actions.length;i++){types[actions[i].type]=true;}
-  document.getElementById("ac-monitor").className="action-card"+(types.MONITOR?" fired":"");
-  document.getElementById("ac-incident").className="action-card"+(types.CREATE_INCIDENT?" fired":"");
-  document.getElementById("ac-escalate").className="action-card"+(types.ESCALATE?" fired":"");
-}
+        var BASELINE_ACTION = {
+          none: { type: "MONITOR", priority: "low" },
+          warning: { type: "CREATE_INCIDENT", priority: "medium" },
+          critical: { type: "ESCALATE", priority: "high" },
+        };
 
-function renderPlans(plans){
-  var h="";
-  for(var i=0;i<plans.length;i++){
-    var p=plans[i];
-    h+='<div class="exec-row">';
-    h+='<span class="exec-platform platform-gl">GitLab</span>';
-    h+='<span class="exec-action-name">'+p.target+' &#8212; '+p.action+'</span>';
-    h+='<span class="exec-key">'+p.idempotencyKey.substring(0,40)+'...</span>';
-    h+='<span class="exec-mode">dry-run</span>';
-    h+='</div>';
-  }
-  if(plans.length===0){h='<div style="color:var(--cmd-muted);font-size:10px;padding:8px">No plans</div>';}
-  execList.innerHTML=h;
-}
+        var EVENT_TEMPLATES = [
+          {
+            stage: "baseline",
+            kind: "task_status",
+            source: "simulated_feed",
+            zone: "command_center",
+            summary: "Operational baseline established. All matchday systems are nominal.",
+            metric: {
+              name: "readiness_percent",
+              value: 82,
+              expected: 80,
+              threshold: 75,
+              unit: "percent",
+            },
+          },
+          {
+            stage: "transport_inflow_lag",
+            kind: "transport_inflow",
+            source: "simulated_feed",
+            zone: "transport_hub",
+            summary:
+              "Inbound supporter flow is below the expected arrival curve two hours before kickoff.",
+            metric: {
+              name: "supporters_arrived",
+              value: 620,
+              expected: 850,
+              threshold: 680,
+              unit: "people",
+            },
+          },
+          {
+            stage: "gate_pressure_rising",
+            kind: "gate_capacity",
+            source: "simulated_feed",
+            zone: "north_gate",
+            summary: "North Gate queue pressure is rising beyond the forecasted entry rate.",
+            metric: {
+              name: "queue_wait_minutes",
+              value: 18,
+              expected: 8,
+              threshold: 12,
+              unit: "minutes",
+            },
+          },
+          {
+            stage: "staffing_gap_detected",
+            kind: "staffing_status",
+            source: "simulated_feed",
+            zone: "security_control",
+            summary: "Security staffing is below the required level for current gate pressure.",
+            metric: {
+              name: "staff_present",
+              value: 12,
+              expected: 20,
+              threshold: 16,
+              unit: "staff",
+            },
+          },
+          {
+            stage: "vendor_readiness_delay",
+            kind: "vendor_readiness",
+            source: "simulated_feed",
+            zone: "vendor_concourse",
+            summary: "Concession vendor setup is late enough to threaten halftime readiness.",
+            metric: {
+              name: "vendors_ready",
+              value: 7,
+              expected: 12,
+              threshold: 10,
+              unit: "vendors",
+            },
+          },
+        ];
 
-function renderAudit(audit){
-  var h="";
-  for(var i=0;i<audit.length;i++){
-    var a=audit[i];
-    h+='<div class="audit-row step-'+a.step+'">';
-    h+='<div class="audit-step">'+a.step.replace("-"," ")+'</div>';
-    h+='<div class="audit-statement">'+a.statement+'</div>';
-    h+='</div>';
-  }
-  if(audit.length===0){h='<div style="color:var(--cmd-muted);font-size:10px;padding:8px">No audit entries</div>';}
-  auditTrail.innerHTML=h;
-}
+        function generateOpsFeed(overrides) {
+          var now = Date.now();
+          return EVENT_TEMPLATES.map(function (t, i) {
+            var o = overrides[t.stage] || {};
+            return {
+              id: "demo-match-001-" + i,
+              kind: t.kind,
+              source: t.source,
+              occurredAt: new Date(now + i * 300000).toISOString(),
+              venueId: "world-cup-stadium-a",
+              zone: t.zone,
+              summary: t.summary,
+              metric: {
+                name: t.metric.name,
+                value: o.value !== undefined ? o.value : t.metric.value,
+                expected: t.metric.expected,
+                threshold: o.threshold !== undefined ? o.threshold : t.metric.threshold,
+                unit: t.metric.unit,
+              },
+            };
+          });
+        }
 
-function renderFooter(d){
-  fActions.textContent=d.actions.length;
-  fBadge.textContent=d.drift.level==="none"?"All systems nominal":d.drift.level==="warning"?"Warning drift detected":"Critical drift detected";
-  fBadge.className="footer-badge "+(d.drift.level==="none"?"":d.drift.level);
-}
+        function detectOperationalDrift(events) {
+          var triggered = [];
+          for (var i = 0; i < events.length; i++) {
+            var event = events[i];
+            var rule = null;
+            for (var j = 0; j < DRIFT_RULES.length; j++) {
+              if (
+                DRIFT_RULES[j].eventKind === event.kind &&
+                DRIFT_RULES[j].metricName === event.metric.name
+              ) {
+                rule = DRIFT_RULES[j];
+                break;
+              }
+            }
+            if (!rule) continue;
+            var threshold = event.metric.threshold;
+            if (
+              typeof threshold !== "number" ||
+              !isFinite(threshold) ||
+              !isFinite(event.metric.value)
+            )
+              continue;
+            var delta =
+              rule.direction === "lower-is-worse"
+                ? threshold - event.metric.value
+                : event.metric.value - threshold;
+            if (delta <= 0) continue;
+            triggered.push({
+              signal: rule.signal,
+              event: event,
+              critical: delta >= rule.criticalDelta,
+            });
+          }
+          if (triggered.length === 0)
+            return { level: "none", signals: [], confidence: 0, triggeredBy: [] };
 
-sGateVal.addEventListener("input",function(){vGateVal.textContent=this.value;run();});
-sGateThr.addEventListener("input",function(){vGateThr.textContent=this.value;run();});
-sStaff.addEventListener("input",function(){vStaff.textContent=this.value;run();});
-sVendor.addEventListener("input",function(){vVendor.textContent=this.value;run();});
-sTransport.addEventListener("input",function(){vTransport.textContent=this.value;run();});
-pNominal.addEventListener("click",function(){applyPreset("nominal");});
-pWarning.addEventListener("click",function(){applyPreset("warning");});
-pCritical.addEventListener("click",function(){applyPreset("critical");});
+          var signals = [];
+          var warningSignals = new Set();
+          var triggeredBy = [];
+          var triggeredEvents = new Set();
+          var hasCriticalMetric = false;
+          for (var k = 0; k < triggered.length; k++) {
+            var tr = triggered[k];
+            if (signals.indexOf(tr.signal) === -1) signals.push(tr.signal);
+            if (tr.critical) hasCriticalMetric = true;
+            else warningSignals.add(tr.signal);
+            var evtKey = tr.event.kind + ":" + tr.event.metric.name;
+            if (!triggeredEvents.has(evtKey)) {
+              triggeredEvents.add(evtKey);
+              triggeredBy.push(tr.event);
+            }
+          }
+          if (hasCriticalMetric || warningSignals.size >= 2)
+            return {
+              level: "critical",
+              signals: signals.concat(["critical-escalation"]),
+              confidence: 0.9,
+              triggeredBy: triggeredBy,
+            };
+          return { level: "warning", signals: signals, confidence: 0.65, triggeredBy: triggeredBy };
+        }
 
-applyPreset("critical");
-})();
-</script>
-</body>
+        function decideActions(drift) {
+          var known = [];
+          var unknown = [];
+          for (var i = 0; i < drift.signals.length; i++) {
+            (KNOWN_SIGNALS.has(drift.signals[i]) ? known : unknown).push(drift.signals[i]);
+          }
+          var action =
+            known.indexOf("critical-escalation") !== -1
+              ? { type: "ESCALATE", priority: "high" }
+              : BASELINE_ACTION[drift.level];
+          return [
+            {
+              type: action.type,
+              priority: action.priority,
+              confidence: drift.confidence,
+              reason:
+                "Drift level " +
+                drift.level +
+                " produced " +
+                action.type +
+                " because known signals: " +
+                (known.length ? known.join(", ") : "none") +
+                "; unknown signals: " +
+                (unknown.length ? unknown.join(", ") : "none") +
+                ".",
+            },
+          ];
+        }
+
+        function stableStringify(value) {
+          if (value === null || typeof value !== "object") return JSON.stringify(value);
+          if (Array.isArray(value)) return "[" + value.map(stableStringify).join(",") + "]";
+          var keys = Object.keys(value).sort();
+          var entries = [];
+          for (var i = 0; i < keys.length; i++) {
+            if (value[keys[i]] !== undefined)
+              entries.push(JSON.stringify(keys[i]) + ":" + stableStringify(value[keys[i]]));
+          }
+          return "{" + entries.join(",") + "}";
+        }
+
+        var MAPPINGS = {
+          MONITOR: {
+            target: "GITLAB_ISSUE",
+            action: "create_issue",
+            buildPayload: function (intent) {
+              return {
+                title: "[MONITOR] Operational status normal \u2014 no drift detected",
+                description:
+                  "**Status:** All operational metrics within expected thresholds.\n\n**Confidence:** " +
+                  Math.round(intent.confidence * 100) +
+                  "%\n**Details:** " +
+                  intent.reason,
+                labels: [intent.priority, "monitoring"],
+                priority: intent.priority,
+                confidence: intent.confidence,
+                reason: intent.reason,
+              };
+            },
+          },
+          CREATE_INCIDENT: {
+            target: "GITLAB_ISSUE",
+            action: "create_issue",
+            buildPayload: function (intent) {
+              return {
+                title: "[INCIDENT] Operational drift detected \u2014 action required",
+                description:
+                  "**Incident:** Operational drift has exceeded warning thresholds.\n\n**Priority:** " +
+                  intent.priority +
+                  "\n**Confidence:** " +
+                  Math.round(intent.confidence * 100) +
+                  "%\n**Details:** " +
+                  intent.reason,
+                labels: [intent.priority, "incident"],
+                priority: intent.priority,
+                confidence: intent.confidence,
+                reason: intent.reason,
+              };
+            },
+          },
+          ESCALATE: {
+            target: "GITLAB_PIPELINE",
+            action: "trigger_pipeline",
+            buildPayload: function (intent) {
+              return {
+                pipeline: "escalation-pipeline",
+                variables: {
+                  priority: intent.priority,
+                  confidence: intent.confidence,
+                  reason: intent.reason,
+                },
+              };
+            },
+          },
+        };
+
+        function mapActionsToExecutionPlans(actions) {
+          return actions.map(function (action) {
+            var m = MAPPINGS[action.type];
+            var payload = m.buildPayload(action);
+            var key =
+              "matchops:" +
+              action.type +
+              ":" +
+              m.target +
+              ":" +
+              m.action +
+              ":" +
+              stableStringify(payload);
+            return {
+              target: m.target,
+              action: m.action,
+              payload: payload,
+              idempotencyKey: key,
+              reason: "Create " + m.action.replace(/_/g, " ") + " for priority " + action.priority,
+            };
+          });
+        }
+
+        function buildAuditTrail(events, drift, actions, plans) {
+          var entries = [];
+          for (var i = 0; i < drift.triggeredBy.length; i++) {
+            var ev = drift.triggeredBy[i];
+            var rule = null;
+            for (var j = 0; j < DRIFT_RULES.length; j++) {
+              if (
+                DRIFT_RULES[j].eventKind === ev.kind &&
+                DRIFT_RULES[j].metricName === ev.metric.name
+              ) {
+                rule = DRIFT_RULES[j];
+                break;
+              }
+            }
+            if (!rule) continue;
+            var threshold = ev.metric.threshold;
+            var delta =
+              rule.direction === "lower-is-worse"
+                ? threshold - ev.metric.value
+                : ev.metric.value - threshold;
+            var isCrit = delta >= rule.criticalDelta;
+            var label = rule.metricName.replace(/_/g, " ");
+            var dir = rule.direction === "higher-is-worse" ? "above" : "below";
+            entries.push({
+              step: "rule-match",
+              statement:
+                label +
+                ": " +
+                ev.metric.value +
+                " " +
+                ev.metric.unit +
+                " (" +
+                dir +
+                " " +
+                threshold +
+                " threshold, gap of " +
+                delta +
+                ", critical at " +
+                rule.criticalDelta +
+                ") \u2192 " +
+                (isCrit ? "CRITICAL" : "WARNING") +
+                " signal",
+            });
+          }
+          if (drift.level === "critical") {
+            var ws = drift.signals.filter(function (s) {
+              return s !== "critical-escalation";
+            });
+            if (ws.length >= 2)
+              entries.push({
+                step: "escalation",
+                statement:
+                  ws.length +
+                  " simultaneous warning signals exceeded escalation threshold \u2192 CRITICAL",
+              });
+          }
+          for (var k = 0; k < actions.length; k++) {
+            var a = actions[k];
+            entries.push({
+              step: "decision",
+              statement:
+                drift.level +
+                " level \u2192 " +
+                a.type.replace(/_/g, " ").toLowerCase() +
+                " (" +
+                a.priority +
+                " priority, " +
+                Math.round(a.confidence * 100) +
+                "% confidence)",
+            });
+          }
+          for (var l = 0; l < plans.length; l++) {
+            var p = plans[l];
+            entries.push({
+              step: "execution",
+              statement:
+                "GitLab " +
+                p.target.replace(/_/g, " ").toLowerCase() +
+                ": " +
+                p.action.replace(/_/g, " ") +
+                " \u2192 key: " +
+                p.idempotencyKey.substring(0, 50),
+            });
+          }
+          return entries;
+        }
+
+        function runPipeline(overrides) {
+          var events = generateOpsFeed(overrides);
+          var drift = detectOperationalDrift(events);
+          var actions = decideActions(drift);
+          var plans = mapActionsToExecutionPlans(actions);
+          var audit = buildAuditTrail(events, drift, actions, plans);
+          return { events: events, drift: drift, actions: actions, plans: plans, audit: audit };
+        }
+
+        // ── UI wiring ──
+        var PRESETS = {
+          nominal: { gate_val: 5, gate_thr: 12, staff: 20, vendor: 12, transport_val: 900 },
+          warning: { gate_val: 15, gate_thr: 12, staff: 18, vendor: 11, transport_val: 750 },
+          critical: { gate_val: 18, gate_thr: 12, staff: 12, vendor: 7, transport_val: 620 },
+        };
+        var sGateVal = document.getElementById("s-gate-val");
+        var sGateThr = document.getElementById("s-gate-thr");
+        var sStaff = document.getElementById("s-staff");
+        var sVendor = document.getElementById("s-vendor");
+        var sTransport = document.getElementById("s-transport");
+        var vGateVal = document.getElementById("v-gate-val");
+        var vGateThr = document.getElementById("v-gate-thr");
+        var vStaff = document.getElementById("v-staff");
+        var vVendor = document.getElementById("v-vendor");
+        var vTransport = document.getElementById("v-transport");
+        var feedList = document.getElementById("feedList");
+        var signalList = document.getElementById("signalList");
+        var driftCard = document.getElementById("driftCard");
+        var driftBadge = document.getElementById("driftBadge");
+        var driftSeverity = document.getElementById("driftSeverity");
+        var driftSignals = document.getElementById("driftSignals");
+        var driftRule = document.getElementById("driftRule");
+        var confVal = document.getElementById("confVal");
+        var confFill = document.getElementById("confFill");
+        var execList = document.getElementById("execList");
+        var auditTrail = document.getElementById("auditTrail");
+        var pNominal = document.getElementById("p-nominal");
+        var pWarning = document.getElementById("p-warning");
+        var pCritical = document.getElementById("p-critical");
+        var btnExecute = document.getElementById("btnExecute");
+        var runModeTag = document.getElementById("runModeTag");
+        var geminiKey = document.getElementById("geminiKey");
+        var gitlabToken = document.getElementById("gitlabToken");
+        var gitlabProjectId = document.getElementById("gitlabProjectId");
+
+        geminiKey.value = localStorage.getItem("matchops_gemini") || "";
+        gitlabToken.value = localStorage.getItem("matchops_gitlab") || "";
+        gitlabProjectId.value = localStorage.getItem("matchops_gl_project") || "";
+        localStorage.setItem("matchops_gemini", geminiKey.value);
+        localStorage.setItem("matchops_gitlab", gitlabToken.value);
+        localStorage.setItem("matchops_gl_project", gitlabProjectId.value);
+        geminiKey.addEventListener("change", function () {
+          localStorage.setItem("matchops_gemini", this.value);
+        });
+        gitlabToken.addEventListener("change", function () {
+          localStorage.setItem("matchops_gitlab", this.value);
+        });
+        gitlabProjectId.addEventListener("change", function () {
+          localStorage.setItem("matchops_gl_project", this.value);
+        });
+
+        var settingsToggle = document.getElementById("settingsToggle");
+        var settingsPanel = document.getElementById("settingsPanel");
+        settingsToggle.addEventListener("click", function () {
+          var isOpen = settingsPanel.classList.toggle("open");
+          settingsToggle.classList.toggle("open", isOpen);
+        });
+
+        function getOverrides() {
+          return {
+            transport_inflow_lag: { value: +sTransport.value },
+            gate_pressure_rising: { value: +sGateVal.value, threshold: +sGateThr.value },
+            staffing_gap_detected: { value: +sStaff.value },
+            vendor_readiness_delay: { value: +sVendor.value },
+          };
+        }
+
+        // ── Instant pipeline (client-side, no fetch) ──
+        function updateInstant() {
+          var d = runPipeline(getOverrides());
+          renderFeed(d.events);
+          renderSignals(d.drift);
+          renderDrift(d.drift);
+          renderActions(d.actions);
+          renderPlans(d.plans);
+          renderAudit(d.audit);
+        }
+
+        function applyPreset(name) {
+          var p = PRESETS[name];
+          sGateVal.value = p.gate_val;
+          vGateVal.textContent = p.gate_val;
+          sGateThr.value = p.gate_thr;
+          vGateThr.textContent = p.gate_thr;
+          sStaff.value = p.staff;
+          vStaff.textContent = p.staff;
+          sVendor.value = p.vendor;
+          vVendor.textContent = p.vendor;
+          sTransport.value = p.transport_val;
+          vTransport.textContent = p.transport_val;
+          pNominal.className = "preset-btn" + (name === "nominal" ? " active" : "");
+          pWarning.className = "preset-btn" + (name === "warning" ? " active" : "");
+          pCritical.className = "preset-btn" + (name === "critical" ? " active" : "");
+          updateInstant();
+        }
+
+        // ── Execute button (server call for GitLab + Gemini) ──
+        function executeOnServer() {
+          runModeTag.textContent = "Live";
+          runModeTag.style.borderColor = "#fc6d26";
+          runModeTag.style.color = "#fc6d26";
+          btnExecute.disabled = true;
+          btnExecute.textContent = "Executing...";
+
+          var payload = { feedOverrides: getOverrides() };
+          var gKey = localStorage.getItem("matchops_gemini") || "";
+          var gToken = localStorage.getItem("matchops_gitlab") || "";
+          var gProject = localStorage.getItem("matchops_gl_project") || "";
+          if (gKey) payload.geminiKey = gKey;
+          if (gToken) payload.gitlabToken = gToken;
+          if (gProject) payload.gitlabProjectId = gProject;
+
+          fetch("/api/execute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+            .then(function (r) {
+              return r.json();
+            })
+            .then(function (d) {
+              if (d.gemini) {
+                document.getElementById("geminiContainer").style.display = "block";
+                document.getElementById("gemSummary").textContent = d.gemini.summary;
+                document.getElementById("gemDrift").textContent = d.gemini.driftAnalysis;
+                document.getElementById("gemRationale").textContent = d.gemini.actionRationale;
+                document.getElementById("gemRisk").textContent = d.gemini.riskAssessment;
+                document.getElementById("gemSteps").innerHTML = d.gemini.recommendedNextSteps
+                  .map(function (s) {
+                    return "<li>" + s + "</li>";
+                  })
+                  .join("");
+              }
+              if (d.gitlab && d.gitlab.length > 0) {
+                document.getElementById("glContainer").style.display = "block";
+                var h = "";
+                for (var i = 0; i < d.gitlab.length; i++) {
+                  var g = d.gitlab[i];
+                  h +=
+                    '<div class="exec-row"><span class="exec-platform platform-gl">GitLab</span><span class="exec-action-name">' +
+                    g.target +
+                    " &#8212; " +
+                    g.action +
+                    "</span>";
+                  if (g.success && g.url)
+                    h +=
+                      '<a href="' +
+                      g.url +
+                      '" target="_blank" style="color:var(--accent);font-size:10px">View Resource</a>';
+                  else if (!g.success)
+                    h +=
+                      '<span style="color:var(--status-crit-text);font-size:9px">' +
+                      g.error +
+                      "</span>";
+                  h +=
+                    '<span class="exec-mode" style="background:' +
+                    (g.dryRun ? "rgba(255,255,255,0.05)" : "rgba(252,109,38,0.2)") +
+                    ";color:" +
+                    (g.dryRun ? "var(--cmd-muted)" : "#fc6d26") +
+                    '">' +
+                    (g.dryRun ? "dry-run" : "live") +
+                    "</span>";
+                  if (g.fallback)
+                    h +=
+                      '<span class="exec-mode" style="background:rgba(255,193,7,0.2);color:#ffc107">fallback</span>';
+                  h += "</div>";
+                }
+                document.getElementById("glResults").innerHTML = h;
+              }
+              btnExecute.disabled = false;
+              btnExecute.textContent = "Execute Actions";
+            })
+            .catch(function (e) {
+              console.error(e);
+              btnExecute.disabled = false;
+              btnExecute.textContent = "Execute Actions";
+            });
+        }
+
+        // ── Renderers ──
+        var DISPLAY_NAMES = {
+          readiness_percent: "Readiness %",
+          supporters_arrived: "Supporters arrived",
+          queue_wait_minutes: "Queue wait (min)",
+          staff_present: "Staff present",
+          vendors_ready: "Vendors ready",
+        };
+        var KIND_NAMES = {
+          transport_inflow: "Transport",
+          gate_capacity: "Gate capacity",
+          staffing_status: "Staffing",
+          vendor_readiness: "Vendor readiness",
+          crowd_density: "Crowd density",
+          task_status: "Task status",
+        };
+
+        function renderFeed(events) {
+          var h = "";
+          for (var i = 0; i < events.length; i++) {
+            var e = events[i];
+            var val = e.metric ? e.metric.value : "";
+            var name = e.metric ? e.metric.name : "";
+            var dn = DISPLAY_NAMES[name] || name;
+            var kn = KIND_NAMES[e.kind] || e.kind;
+            var isWarn =
+              (name === "queue_wait_minutes" && val > 12) ||
+              (name === "supporters_arrived" && val < 680) ||
+              (name === "staff_present" && val < 16) ||
+              (name === "vendors_ready" && val < 10);
+            h +=
+              '<div class="event-row"><div class="event-type">' +
+              kn +
+              '</div><div class="event-val">' +
+              dn +
+              " <span" +
+              (isWarn ? "" : name === "readiness_percent" ? ' class="ok"' : "") +
+              ">" +
+              val +
+              "</span></div></div>";
+          }
+          feedList.innerHTML = h;
+        }
+
+        function renderSignals(drift) {
+          var h = "";
+          if (drift.signals.length === 0) {
+            h =
+              '<div class="event-row"><div class="event-type">-</div><div class="event-val"><span class="ok">no signals</span></div></div>';
+          } else {
+            for (var i = 0; i < drift.signals.length; i++) {
+              var s = drift.signals[i];
+              var c = s === "critical-escalation";
+              h +=
+                '<div class="event-row"><div class="event-type">' +
+                (c ? "escalate" : "signal") +
+                '</div><div class="event-val"><span' +
+                (c ? ' class="crit"' : "") +
+                ">" +
+                s +
+                "</span></div></div>";
+            }
+          }
+          signalList.innerHTML = h;
+        }
+
+        function renderDrift(drift) {
+          var lvl = drift.level;
+          driftCard.className = "drift-card " + (lvl === "none" ? "nominal" : lvl);
+          driftBadge.className = "drift-status " + (lvl === "none" ? "nominal" : lvl);
+          driftBadge.textContent =
+            lvl === "none" ? "Nominal" : lvl.charAt(0).toUpperCase() + lvl.slice(1);
+          driftSeverity.textContent = lvl.toUpperCase();
+          driftSeverity.className =
+            "metric-val " + (lvl === "none" ? "ok" : lvl === "warning" ? "warn" : "crit");
+          driftSignals.textContent = drift.signals.length > 0 ? drift.signals.join(" + ") : "none";
+          driftSignals.className = "metric-val " + (drift.signals.length > 0 ? "warn" : "ok");
+          driftRule.textContent =
+            drift.level === "critical"
+              ? "critical-escalation"
+              : drift.level === "warning"
+                ? "threshold-breach"
+                : "-";
+          var pct = Math.round(drift.confidence * 100);
+          confVal.textContent = pct + "%";
+          confVal.style.color =
+            pct >= 80
+              ? "var(--status-crit-text)"
+              : pct >= 40
+                ? "var(--status-warn-text)"
+                : "var(--status-ok-text)";
+          confFill.style.width = pct + "%";
+          confFill.className =
+            "conf-bar-fill " + (pct >= 80 ? "fill-crit" : pct >= 40 ? "fill-warn" : "fill-ok");
+        }
+
+        function renderActions(actions) {
+          var t = { MONITOR: false, CREATE_INCIDENT: false, ESCALATE: false };
+          for (var i = 0; i < actions.length; i++) t[actions[i].type] = true;
+          document.getElementById("ac-monitor").className =
+            "action-card" + (t.MONITOR ? " fired" : "");
+          document.getElementById("ac-incident").className =
+            "action-card" + (t.CREATE_INCIDENT ? " fired" : "");
+          document.getElementById("ac-escalate").className =
+            "action-card" + (t.ESCALATE ? " fired" : "");
+        }
+
+        function renderPlans(plans) {
+          var h = "";
+          for (var i = 0; i < plans.length; i++) {
+            var p = plans[i];
+            h +=
+              '<div class="exec-row"><span class="exec-platform platform-gl">GitLab</span><span class="exec-action-name">' +
+              p.target +
+              " &#8212; " +
+              p.action +
+              '</span><span class="exec-key">' +
+              p.idempotencyKey.substring(0, 40) +
+              '...</span><span class="exec-mode">plan</span></div>';
+          }
+          if (plans.length === 0)
+            h = '<div style="color:var(--cmd-muted);font-size:10px;padding:8px">No plans</div>';
+          execList.innerHTML = h;
+        }
+
+        function renderAudit(audit) {
+          var h = "";
+          for (var i = 0; i < audit.length; i++) {
+            var a = audit[i];
+            h +=
+              '<div class="audit-row step-' +
+              a.step +
+              '"><div class="audit-step">' +
+              a.step.replace("-", " ") +
+              '</div><div class="audit-statement">' +
+              a.statement +
+              "</div></div>";
+          }
+          if (audit.length === 0)
+            h =
+              '<div style="color:var(--cmd-muted);font-size:10px;padding:8px">No audit entries</div>';
+          auditTrail.innerHTML = h;
+        }
+
+        // ── Event listeners (instant, no debounce needed) ──
+        sGateVal.addEventListener("input", function () {
+          vGateVal.textContent = this.value;
+          updateInstant();
+        });
+        sGateThr.addEventListener("input", function () {
+          vGateThr.textContent = this.value;
+          updateInstant();
+        });
+        sStaff.addEventListener("input", function () {
+          vStaff.textContent = this.value;
+          updateInstant();
+        });
+        sVendor.addEventListener("input", function () {
+          vVendor.textContent = this.value;
+          updateInstant();
+        });
+        sTransport.addEventListener("input", function () {
+          vTransport.textContent = this.value;
+          updateInstant();
+        });
+        pNominal.addEventListener("click", function () {
+          applyPreset("nominal");
+        });
+        pWarning.addEventListener("click", function () {
+          applyPreset("warning");
+        });
+        pCritical.addEventListener("click", function () {
+          applyPreset("critical");
+        });
+        btnExecute.addEventListener("click", function () {
+          executeOnServer();
+        });
+
+        // Initial load
+        applyPreset("critical");
+      })();
+    </script>
+  </body>
 </html>

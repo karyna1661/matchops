@@ -1,0 +1,27 @@
+stages:
+  - test
+  - deploy
+
+test:
+  stage: test
+  image: node:22-slim
+  script:
+    - npm ci
+    - npm run check
+    - npm test
+  only:
+    - main
+    - merge_requests
+
+deploy:
+  stage: deploy
+  image: ghcr.io/railwayapp/cli:latest
+  variables:
+    SVC_ID: $RAILWAY_SERVICE_ID
+  script:
+    - railway up --service=$SVC_ID
+  only:
+    - main
+  when: manual
+  needs:
+    - test

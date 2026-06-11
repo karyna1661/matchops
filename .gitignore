@@ -29,3 +29,10 @@ coverage/
 .tmp/
 .cache/
 tmp/
+
+# Tool traces
+.regen-engine/
+.regen/
+
+# Agent runtime
+.adk/
